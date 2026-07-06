@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Generador de peticiones</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="wrap">
+
+        <header>
+            <h1>Generador CSA218 <span class="badge">Csa218Integration</span></h1>
+            <p>Arma los Envelopes SOAP de creación, actualización y líneas, con las mismas reglas de
+                <code>SetServiceLines</code>.
+            </p>
+        </header>
+
+        <div class="main-tabs" id="mainTabs">
+            <div class="main-tab active" data-maintab="header">1. Crear Pedido</div>
+            <div class="main-tab" data-maintab="lines">2. Agregar Líneas</div>
+            <div class="main-tab" data-maintab="update">3. Actualizar Pedido</div>
+        </div>
+        <!-- ============ TAB 1: CREAR PEDIDO (CreateServiceOrderHeader) ============ -->
+        <section class="main-tab-panel active" id="panel-header">
+            <div class="grid">
+                <div class="card">
+                    <h2>Datos del pedido</h2>
+
+                    <label>billToCustomer</label>
+                    <input type="text" id="h_billToCustomer" placeholder="CL008772">
+
+                    <label>shipToCode</label>
+                    <input type="text" id="h_shipToCode" placeholder="">
+
+                    <label>serviceItemNo</label>
+                    <input type="text" id="h_serviceItemNo" placeholder="FSER_3125808">
+
+                    <label>resourceNo</label>
+                    <input type="text" id="h_resourceNo" placeholder="">
+
+                    <label>km</label>
+                    <input type="number" id="h_km" placeholder="4000">
+
+                    <label>observations</label>
+                    <input type="text" id="h_observations" placeholder="PRUEBA_CONSUMO_PDV">
+
+                    <label>licensePlate</label>
+                    <input type="text" id="h_licensePlate" placeholder="LGQ64F">
+
+                    <label>workshopEntryDate</label>
+                    <input type="date" id="h_workshopEntryDate">
+
+                    <label>serviceOrderUser</label>
+                    <input type="text" id="h_serviceOrderUser" placeholder="INCOLMOTOSYMCO\ADGARNICA">
+
+                    <label>serviceOrderType</label>
+                    <input type="text" id="h_serviceOrderType" placeholder="MTTO_PREP">
+
+                    <label>sellToCustomer</label>
+                    <input type="text" id="h_sellToCustomer" placeholder="">
+
+                    <label>externalOrderNo</label>
+                    <input type="text" id="h_externalOrderNo" placeholder="">
+
+                    <label>contractNo</label>
+                    <input type="text" id="h_contractNo" placeholder="CTSERV_000717">
+
+                    <button class="btn" id="genHeaderBtn">Generar XML</button>
+
+                    <h2 style="margin-top:22px;">O importar desde JSON</h2>
+                    <div class="hint" style="margin-bottom:8px;">
+                        Campos esperados: Mileage, ContractNo, CustomerNo, ResourceNo, LicensePlate, Observations,
+                        ServiceItemNo, SellToCustomer, ExternalOrderNo, ServiceOrderType, ServiceOrderUser,
+                        ShipToAddressCode, WorkshopEntryDate.
+                    </div>
+                    <textarea id="headerJsonInput" style="min-height:120px;"
+                        placeholder='{"Mileage":"4000","ContractNo":"CTSERV_000717","CustomerNo":"CL008772", ...}'></textarea>
+                    <button class="btn secondary" id="importHeaderJsonBtn">Convertir JSON al formulario</button>
+                    <div class="error-box" id="headerJsonErrBox"></div>
+                    <div class="ok-box" id="headerJsonOkBox"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Resultado</h2>
+                    <label>Envelope SOAP · CreateServiceOrderHeader</label>
+                    <textarea id="headerOutXml" readonly style="min-height:420px;"></textarea>
+                    <button class="btn secondary" id="copyHeaderXmlBtn">Copiar XML</button>
+                    <div class="ok-box" id="headerOkBox">Copiado al portapapeles</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ TAB 2: ACTUALIZAR PEDIDO (UpdateServiceOrder) ============ -->
+        <section class="main-tab-panel" id="panel-update">
+            <div class="grid">
+                <div class="card">
+                    <h2>Datos de actualización</h2>
+
+                    <label>serviceOrderNo</label>
+                    <input type="text" id="u_serviceOrderNo" placeholder="PSER_3031810">
+
+                    <label>kilometers</label>
+                    <input type="number" id="u_kilometers" placeholder="4000">
+
+                    <label>serviceOrderType</label>
+                    <input type="text" id="u_serviceOrderType" placeholder="MTTO_PREP">
+
+                    <label>ingressComment</label>
+                    <input type="text" id="u_ingressComment" placeholder="pruebas">
+
+                    <label>egressComment</label>
+                    <input type="text" id="u_egressComment" placeholder="PedidoConsumo_PDV">
+
+                    <label>repairStatusCode</label>
+                    <input type="text" id="u_repairStatusCode" placeholder="TERMINADO">
+
+                    <label>resourceNo</label>
+                    <input type="text" id="u_resourceNo" placeholder="1045518403">
+
+                    <label>billToCustomer</label>
+                    <input type="text" id="u_billToCustomer" placeholder="">
+
+                    <label>approverUserID</label>
+                    <input type="text" id="u_approverUserID" placeholder="INCOLMOTOSYMCO\HWLOPEZ">
+
+                    <button class="btn" id="genUpdateBtn">Generar XML</button>
+
+                    <h2 style="margin-top:22px;">O importar desde JSON</h2>
+                    <div class="hint" style="margin-bottom:8px;">
+                        Campos esperados: Mileage, ResourceNo, ExitComment, EntryComment, ApproverUserID,
+                        SellToCustomer, ServiceOrderNo, RepairStatusCode, ServiceOrderType.
+                    </div>
+                    <textarea id="updateJsonInput" style="min-height:120px;"
+                        placeholder='{"Mileage":"4000","ResourceNo":"1045518403","ExitComment":"...", ...}'></textarea>
+                    <button class="btn secondary" id="importUpdateJsonBtn">Convertir JSON al formulario</button>
+                    <div class="error-box" id="updateJsonErrBox"></div>
+                    <div class="ok-box" id="updateJsonOkBox"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Resultado</h2>
+                    <label>Envelope SOAP · UpdateServiceOrder</label>
+                    <textarea id="updateOutXml" readonly style="min-height:420px;"></textarea>
+                    <button class="btn secondary" id="copyUpdateXmlBtn">Copiar XML</button>
+                    <div class="ok-box" id="updateOkBox">Copiado al portapapeles</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ TAB 3: AGREGAR LINEAS (CreateServiceOrderLine) ============ -->
+        <section class="main-tab-panel" id="panel-lines">
+            <div class="grid">
+
+                <!-- FORMULARIO -->
+                <div class="card">
+                    <h2>1. Datos del pedido</h2>
+                    <label class="req">Nº de Pedido de Servicio (serviceOrderNo)</label>
+                    <input type="text" id="docNo" placeholder="PSER_3031810">
+
+                    <h2 style="margin-top:20px;">Datos de garantía</h2>
+                    <div class="hint" style="margin-bottom:8px;">
+                        Obligatorios solo si alguna línea tiene ServiceType = GARANTIA (validado en SetServiceLines).
+                    </div>
+                    <label>primaryFailurePart</label>
+                    <input type="text" id="primaryFailurePart" placeholder="B0LH25300100">
+
+                    <label>faultAreaCode</label>
+                    <input type="text" id="faultAreaCode" placeholder="N2">
+
+                    <label>symptomCode</label>
+                    <input type="text" id="symptomCode" placeholder="A9">
+
+                    <label>failureCode</label>
+                    <input type="text" id="failureCode" placeholder="YMC">
+
+                    <div class="error-box" id="warrantyErrBox"></div>
+
+                    <h2 style="margin-top:20px;">2. Agregar línea</h2>
+                    <div class="type-tabs" id="typeTabs">
+                        <div class="type-tab active" data-type="Producto">Producto</div>
+                        <div class="type-tab" data-type="Recurso">Recurso</div>
+                        <div class="type-tab" data-type="Coste">Coste</div>
+                        <div class="type-tab" data-type="Observacion">Observación</div>
+                    </div>
+
+                    <!-- Campos comunes a Producto/Recurso/Coste -->
+                    <div id="commonFields">
+                        <label class="req">Código (ItemNo / Recurso / Código de coste)</label>
+                        <input type="text" id="itemNo" placeholder="90793AV50100">
+
+                        <label class="req">Cantidad (QuantitySet)</label>
+                        <input type="number" id="qty" step="any" placeholder="2">
+
+                        <label class="req">Nº de mantenimiento (LineMaintenanceNo)</label>
+                        <input type="number" id="maintNo" placeholder="2">
+
+                        <label class="req">Tipo de servicio (ServiceType)</label>
+                        <input type="text" id="serviceType" placeholder="MTTO_PREP">
+                    </div>
+
+                    <!-- Solo Producto -->
+                    <div class="field-group" id="grp-Producto">
+                        <label>SamplePart (1 = muestra / 0 = normal)</label>
+                        <select id="samplePart">
+                            <option value="0" selected>0 - No es muestra</option>
+                            <option value="1">1 - Es muestra</option>
+                        </select>
+                        <div class="hint">Se evalúa como número — nunca se deja vacío.</div>
+                    </div>
+
+                    <!-- Solo Recurso -->
+                    <div class="field-group" id="grp-Recurso">
+                        <label class="req">Tempario</label>
+                        <input type="text" id="tempario" placeholder="MTO1">
+                        <label class="req">Tipo de trabajo (WorkType)</label>
+                        <input type="text" id="workType" placeholder="BAJA_CC">
+                        <label>% Descuento (DiscountPct)</label>
+                        <input type="number" id="discountPct" placeholder="0" value="0">
+                        <div class="hint">Se evalúa como número — nunca se deja vacío. Entre 0 y 100.</div>
+                        <label>Descripción del recurso (obligatoria solo si ServiceType = MTTO_PREP y código es
+                            MANO_DE_OBRA*)</label>
+                        <input type="text" id="resourceDesc" placeholder="CALIBRACION DE VALVULAS" maxlength="50">
+                    </div>
+
+                    <!-- Solo Coste -->
+                    <div class="field-group" id="grp-Coste">
+                        <label class="req">Monto (CostAmt)</label>
+                        <input type="number" id="costAmt" step="any" placeholder="0">
+                        <label>Descripción (solo permitida si código es C3 o S3)</label>
+                        <input type="text" id="costDesc" maxlength="50">
+                    </div>
+
+                    <!-- Solo Observacion -->
+                    <div class="field-group" id="grp-Observacion">
+                        <label class="req">Texto de la observación (máx. 50 caracteres)</label>
+                        <input type="text" id="obsText" maxlength="50">
+                    </div>
+
+                    <button class="btn" id="addLineBtn">+ Agregar línea</button>
+                    <div class="error-box" id="errBox"></div>
+
+                    <div class="lines-list" id="linesList"></div>
+
+                    <h2 style="margin-top:22px;">3. O importar desde JSON</h2>
+                    <div class="hint" style="margin-bottom:8px;">
+                        Pega un JSON con <code>ServiceOrderNo</code> e <code>Items[]</code>. Convierte todas las líneas
+                        de una vez, aplicando las mismas validaciones.
+                    </div>
+                    <textarea id="jsonInput" style="min-height:120px;"
+                        placeholder='{"ServiceOrderNo":"PSER_XXXXXXX","Items":[{"Type":"Producto","ItemNo":"90793AV50100","Quantity":"2","MaintenanceNumber":"2","ServiceType":"MTTO_PREP",...}]}'></textarea>
+                    <button class="btn secondary" id="importJsonBtn">Convertir JSON a líneas</button>
+                    <div class="error-box" id="jsonErrBox"></div>
+                    <div class="ok-box" id="jsonOkBox"></div>
+                </div>
+
+                <!-- SALIDA -->
+                <div class="card">
+                    <h2>3. Resultado</h2>
+                    <label>txtItemsAndQuantities</label>
+                    <textarea id="outString" readonly style="min-height:60px;"></textarea>
+
+                    <label style="margin-top:16px;">Envelope SOAP</label>
+                    <textarea id="outXml" readonly></textarea>
+
+                    <div class="copybar">
+                        <button class="btn secondary" id="copyStringBtn">Copiar string</button>
+                        <button class="btn secondary" id="copyXmlBtn">Copiar XML</button>
+                    </div>
+                    <div class="ok-box" id="okBox">Copiado al portapapeles</div>
+                </div>
+
+            </div>
+        </section>
+
+        <footer>Reglas basadas en SetServiceLines (Codeunit Csa218Integration) · Posiciones numéricas nunca quedan
+            vacías para evitar NavNCLEvaluateException</footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
