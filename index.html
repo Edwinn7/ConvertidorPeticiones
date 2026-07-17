@@ -20,8 +20,8 @@
             <div class="main-tab active" data-maintab="header">1. Crear Pedido</div>
             <div class="main-tab" data-maintab="lines">2. Agregar Líneas</div>
             <div class="main-tab" data-maintab="update">3. Actualizar Pedido</div>
-        </div>
-        <!-- ============ TAB 1: CREAR PEDIDO (CreateServiceOrderHeader) ============ -->
+            <div class="main-tab" data-maintab="jsonexec">4. JSON → EXEC SQL</div>
+        </div> <!-- ============ TAB 1: CREAR PEDIDO (CreateServiceOrderHeader) ============ -->
         <section class="main-tab-panel active" id="panel-header">
             <div class="grid">
                 <div class="card">
@@ -297,6 +297,64 @@
 
             </div>
         </section>
+
+        <!-- ============ TAB 4: JSON -> EXEC SQL (genérico, cualquier SP) ============ -->
+        <section class="main-tab-panel" id="panel-jsonexec">
+            <div class="grid">
+                <div class="card">
+                    <h2>1. Definición del SP</h2>
+                    <div class="hint" style="margin-bottom:8px;">
+                        Pega el encabezado del SP (ALTER/CREATE PROCEDURE ... con sus @parámetros, tal como lo
+                        copias del "Modify" en la base de datos). Se detecta nombre, tipo de cada parámetro y
+                        si tiene default NULL. Funciona con cualquier SP, no uno fijo.
+                    </div>
+                    <textarea id="spDefInput" style="min-height:160px;"
+                        placeholder="ALTER PROCEDURE [dbo].[sp_MiProcedimiento]&#10;    @Campo1 VARCHAR(20),&#10;    @Campo2 INT = NULL"></textarea>
+                    <button class="btn secondary" id="parseSpBtn">Leer parámetros del SP</button>
+                    <div class="error-box" id="spDefErrBox"></div>
+
+                    <label style="margin-top:16px;">Nombre del SP (editable)</label>
+                    <input type="text" id="spNameDetected" placeholder="dbo.sp_MiProcedimiento">
+
+                    <label style="margin-top:12px;">Parámetros</label>
+                    <table class="param-table">
+                        <thead>
+                            <tr>
+                                <th>@Parámetro</th>
+                                <th>Tipo SQL</th>
+                                <th>Tipo salida</th>
+                                <th>JSON Key</th>
+                                <th>NULL si vacío</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="spParamsBody"></tbody>
+                    </table>
+                    <button class="btn secondary" id="addManualParamBtn">+ Agregar parámetro manual</button>
+
+                    <h2 style="margin-top:22px;">2. JSON de datos</h2>
+                    <div class="hint" style="margin-bottom:8px;">
+                        Objeto único o array. Si es array, se genera un EXEC por cada elemento, separados por
+                        línea en blanco.
+                    </div>
+                    <textarea id="execDataInput" style="min-height:160px;"
+                        placeholder='[{"Campo1":"ABC","Campo2":"10"}, {"Campo1":"XYZ","Campo2":"5"}]'></textarea>
+
+                    <button class="btn" id="genExecBtn">Generar EXEC</button>
+                    <div class="error-box" id="execGenErrBox"></div>
+                    <div class="ok-box" id="execGenOkBox"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Resultado</h2>
+                    <label>EXEC SQL</label>
+                    <textarea id="execOutput" readonly style="min-height:420px;"></textarea>
+                    <button class="btn secondary" id="copyExecBtn">Copiar EXEC</button>
+                    <div class="ok-box" id="execCopyOkBox">Copiado al portapapeles</div>
+                </div>
+            </div>
+        </section>
+
         <footer>Reglas basadas en SetServiceLines (Codeunit Csa218Integration) · Posiciones numéricas nunca quedan
             vacías para evitar NavNCLEvaluateException</footer>
     </div>

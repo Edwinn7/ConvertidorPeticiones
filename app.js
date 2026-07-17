@@ -697,3 +697,207 @@ document.getElementById('copyLinesOnRunBtn').addEventListener('click', () => {
   ok.style.display = 'block';
   setTimeout(() => ok.style.display = 'none', 1500);
 });
+
+// =========================================================
+// TAB 4: JSON -> EXEC SQL (genérico, cualquier SP)
+// =========================================================
+
+function sqlEscape(v) {
+  return String(v).replace(/'/g, "''");
+}
+
+// Detecta la categoría de salida (texto/número/fecha) a partir del tipo SQL
+function sqlTypeToCategory(sqlType) {
+  const t = sqlType.toUpperCase();
+  if (/^(INT|BIGINT|SMALLINT|TINYINT|DECIMAL|NUMERIC|FLOAT|REAL|MONEY|SMALLMONEY|BIT)/.test(t)) return 'number';
+  if (/^(DATE|DATETIME|DATETIME2|SMALLDATETIME|TIME)/.test(t)) return 'date';
+  return 'text';
+}
+
+// Parsea un encabezado ALTER/CREATE PROCEDURE [dbo].[Nombre] @P1 TIPO, @P2 TIPO = NULL, ...
+function parseStoredProcedure(sql) {
+  const cleaned = sql.replace(/\r\n/g, '\n');
+
+  const nameMatch = cleaned.match(/(?:CREATE|ALTER)\s+PROCEDURE\s+(\[?[\w]+\]?\.)?\[?([\w]+)\]?/i);
+  if (!nameMatch) throw new Error('No se encontró "CREATE/ALTER PROCEDURE" en el texto pegado.');
+
+  const schema = nameMatch[1] ? nameMatch[1].replace(/[\[\].]/g, '') : 'dbo';
+  const procName = nameMatch[2];
+  const spName = schema + '.' + procName;
+
+  const afterName = cleaned.slice(nameMatch.index + nameMatch[0].length);
+  const asSplit = afterName.split(/\n\s*AS\s*\n|\n\s*AS\s*$/i);
+  const paramsBlock = asSplit[0];
+
+  // Separar por comas que NO estén dentro de paréntesis (por DECIMAL(18,4))
+  const rawParams = [];
+  let depth = 0, current = '';
+  for (const ch of paramsBlock) {
+    if (ch === '(') depth++;
+    if (ch === ')') depth--;
+    if (ch === ',' && depth === 0) {
+      rawParams.push(current);
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  if (current.trim() !== '') rawParams.push(current);
+
+  const params = [];
+  rawParams.forEach(chunk => {
+    const c = chunk.trim();
+    if (c === '' || !c.startsWith('@')) return;
+
+    const m = c.match(/^(@\w+)\s+([\w]+(?:\s*\([^)]*\))?)\s*(=\s*(.+))?$/i);
+    if (!m) return;
+
+    const sqlParam = m[1];
+    const sqlType = m[2].replace(/\s+/g, '');
+    const defaultRaw = m[4] ? m[4].trim().toUpperCase() : null;
+    const hasDefaultNull = defaultRaw === 'NULL';
+
+    params.push({ sqlParam, sqlType, hasDefaultNull });
+  });
+
+  if (params.length === 0) throw new Error('No se detectaron parámetros (¿el texto tiene "@Nombre TIPO, ..."?).');
+
+  return { spName, params };
+}
+
+function makeParamRow(sqlParam, sqlType, category) {
+  const tr = document.createElement('tr');
+  const jsonKeyDefault = (sqlParam || '').replace('@', '');
+  tr.innerHTML =
+    '<td><input type="text" class="pt-param" value="' + (sqlParam || '') + '" placeholder="@Parametro"></td>' +
+    '<td><input type="text" class="pt-sqltype" value="' + (sqlType || '') + '" placeholder="VARCHAR(50)"></td>' +
+    '<td><select class="pt-type">' +
+      '<option value="text"' + (category === 'text' ? ' selected' : '') + '>Texto</option>' +
+      '<option value="number"' + (category === 'number' ? ' selected' : '') + '>Número</option>' +
+      '<option value="date"' + (category === 'date' ? ' selected' : '') + '>Fecha</option>' +
+    '</select></td>' +
+    '<td><input type="text" class="pt-jsonkey" value="' + jsonKeyDefault + '" placeholder="JsonKey"></td>' +
+    '<td style="text-align:center;"><input type="checkbox" class="pt-null"></td>' +
+    '<td style="text-align:center;"><button type="button" class="rm-param">×</button></td>';
+  tr.querySelector('.rm-param').addEventListener('click', () => tr.remove());
+  return tr;
+}
+
+function renderSpParamsTable(parsed) {
+  document.getElementById('spNameDetected').value = parsed.spName;
+  const tbody = document.getElementById('spParamsBody');
+  tbody.innerHTML = '';
+  parsed.params.forEach(p => {
+    const category = sqlTypeToCategory(p.sqlType);
+    // Si el SP declara "= NULL", lo marcamos solo como referencia visual en el tipo SQL,
+    // pero el checkbox de NULL queda desmarcado por defecto (regla: vacío -> '' / 0).
+    const sqlTypeLabel = p.sqlType + (p.hasDefaultNull ? ' (opcional)' : '');
+    tbody.appendChild(makeParamRow(p.sqlParam, sqlTypeLabel, category));
+  });
+}
+
+document.getElementById('parseSpBtn').addEventListener('click', () => {
+  const errBox = document.getElementById('spDefErrBox');
+  errBox.style.display = 'none';
+
+  const raw = document.getElementById('spDefInput').value.trim();
+  if (raw === '') { errBox.textContent = 'Pega la definición del SP (CREATE/ALTER PROCEDURE ...).'; errBox.style.display = 'block'; return; }
+
+  let parsed;
+  try { parsed = parseStoredProcedure(raw); }
+  catch (e) { errBox.textContent = e.message; errBox.style.display = 'block'; return; }
+
+  renderSpParamsTable(parsed);
+});
+
+document.getElementById('addManualParamBtn').addEventListener('click', () => {
+  document.getElementById('spParamsBody').appendChild(makeParamRow('', '', 'text'));
+});
+
+function readParamsFromTable() {
+  const rows = document.querySelectorAll('#spParamsBody tr');
+  const params = [];
+  rows.forEach(tr => {
+    let sqlParam = tr.querySelector('.pt-param').value.trim();
+    if (sqlParam === '') return;
+    if (!sqlParam.startsWith('@')) sqlParam = '@' + sqlParam;
+    const type = tr.querySelector('.pt-type').value;
+    const jsonKey = tr.querySelector('.pt-jsonkey').value.trim();
+    const allowNull = tr.querySelector('.pt-null').checked;
+    params.push({ sqlParam, type, jsonKey, allowNull });
+  });
+  return params;
+}
+
+// Busca la key en el objeto JSON sin importar mayúsculas/minúsculas
+// (ej: JSON trae "UserId" y el SP espera "UserID")
+function findJsonValueCaseInsensitive(obj, key) {
+  if (obj === null || typeof obj !== 'object') return undefined;
+  if (Object.prototype.hasOwnProperty.call(obj, key)) return obj[key];
+  const lowerKey = key.toLowerCase();
+  const found = Object.keys(obj).find(k => k.toLowerCase() === lowerKey);
+  return found !== undefined ? obj[found] : undefined;
+}
+
+function buildExecStatement(spName, paramsConfig, item) {
+  const lines = paramsConfig.map(p => {
+    const raw = findJsonValueCaseInsensitive(item, p.jsonKey);
+    const isEmpty = (raw === undefined || raw === null || (typeof raw === 'string' && raw.trim() === ''));
+
+    let outVal;
+    if (isEmpty && p.allowNull) {
+      outVal = 'NULL';
+    } else if (p.type === 'number') {
+      outVal = isEmpty ? '0' : String(raw).trim();
+    } else if (p.type === 'date') {
+      outVal = isEmpty ? 'NULL' : "'" + sqlEscape(String(raw).trim()) + "'";
+    } else {
+      outVal = isEmpty ? "''" : "'" + sqlEscape(String(raw).trim()) + "'";
+    }
+
+    return '    ' + p.sqlParam + ' = ' + outVal;
+  });
+
+  return 'EXEC ' + spName + '\n' + lines.join(',\n') + ';';
+}
+
+document.getElementById('genExecBtn').addEventListener('click', () => {
+  const errBox = document.getElementById('execGenErrBox');
+  const okBox = document.getElementById('execGenOkBox');
+  errBox.style.display = 'none'; okBox.style.display = 'none';
+
+  const spName = document.getElementById('spNameDetected').value.trim();
+  if (spName === '') { errBox.textContent = 'El nombre del SP no puede estar vacío.'; errBox.style.display = 'block'; return; }
+
+  const paramsConfig = readParamsFromTable();
+  if (paramsConfig.length === 0) {
+    errBox.textContent = 'Agrega al menos un parámetro (pegando la definición del SP o de forma manual).';
+    errBox.style.display = 'block';
+    return;
+  }
+
+  const rawData = document.getElementById('execDataInput').value.trim();
+  if (rawData === '') { errBox.textContent = 'Pega el JSON de datos.'; errBox.style.display = 'block'; return; }
+
+  let data;
+  try { data = JSON.parse(rawData); }
+  catch (e) { errBox.textContent = 'JSON de datos inválido: ' + e.message; errBox.style.display = 'block'; return; }
+
+  const items = Array.isArray(data) ? data : [data];
+  if (items.length === 0) { errBox.textContent = 'El JSON de datos no tiene elementos.'; errBox.style.display = 'block'; return; }
+
+  const statements = items.map(item => buildExecStatement(spName, paramsConfig, item));
+  document.getElementById('execOutput').value = statements.join('\n\n');
+
+  okBox.textContent = statements.length + ' EXEC generado(s).';
+  okBox.style.display = 'block';
+});
+
+document.getElementById('copyExecBtn').addEventListener('click', () => {
+  const el = document.getElementById('execOutput');
+  el.select();
+  document.execCommand('copy');
+  const ok = document.getElementById('execCopyOkBox');
+  ok.style.display = 'block';
+  setTimeout(() => ok.style.display = 'none', 1500);
+});

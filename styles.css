@@ -301,3 +301,42 @@ footer {
 .main-tab-panel.active {
     display: block;
 }
+
+.param-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+    font-size: 12px;
+}
+
+.param-table th,
+.param-table td {
+    border: 1px solid var(--border);
+    padding: 6px 8px;
+    text-align: left;
+}
+
+.param-table th {
+    background: var(--panel-2);
+    color: var(--text-dim);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: .04em;
+}
+
+.param-table input[type=text],
+.param-table select {
+    width: 100%;
+    padding: 4px 6px;
+    font-size: 12px;
+}
+
+.param-table .rm-param {
+    background: none;
+    border: none;
+    color: var(--danger);
+    cursor: pointer;
+    font-size: 15px;
+    line-height: 1;
+}
