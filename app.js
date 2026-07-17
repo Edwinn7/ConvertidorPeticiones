@@ -493,3 +493,207 @@ function copyUpdateXml() {
   setTimeout(() => ok.style.display = 'none', 1500);
 }
 document.getElementById('copyUpdateXmlBtn').addEventListener('click', copyUpdateXml);
+
+// =========================================================
+// GENERAR ONRUN (usa el mismo JSON/formulario ya cargado en cada tab)
+// =========================================================
+
+function navStr(v, maxLen) {
+  maxLen = maxLen || 80;
+  const raw = (v === undefined || v === null) ? '' : String(v);
+  const escaped = raw.replace(/'/g, "''");
+
+  if (escaped.length <= maxLen) {
+    return "'" + escaped + "'";
+  }
+
+  const chunks = [];
+  let i = 0;
+  while (i < escaped.length) {
+    let end = Math.min(i + maxLen, escaped.length);
+    if (end < escaped.length && escaped[end - 1] === "'" && escaped[end] === "'") {
+      end -= 1;
+    }
+    if (end <= i) end = i + maxLen;
+    chunks.push(escaped.slice(i, end));
+    i = end;
+  }
+  return chunks.map(c => "'" + c + "'").join(" +\n");
+}
+
+// Convierte una fecha (ISO "YYYY-MM-DD", como la envía <input type="date"> o el JSON)
+// al literal de fecha NAV: DDMMYYYYD. Si viene vacía o no reconocida, cae a 0D (fecha en blanco).
+function navDate(v) {
+  const s = (v === undefined || v === null) ? '' : String(v).trim();
+  if (s === '') return '0D';
+
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/); // 2026-07-16
+  if (m) return m[3] + m[2] + m[1] + 'D';
+
+  m = s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/); // 16/07/2026 o 16-07-2026
+  if (m) return m[1].padStart(2, '0') + m[2].padStart(2, '0') + m[3] + 'D';
+
+  return '0D';
+}
+// ---------- Header ----------
+function showHeaderOnRunError(msg) {
+  document.getElementById('headerOnRunOkBox').style.display = 'none';
+  const box = document.getElementById('headerOnRunErrBox');
+  box.textContent = msg;
+  box.style.display = 'block';
+}
+
+document.getElementById('genHeaderOnRunBtn').addEventListener('click', () => {
+  document.getElementById('headerOnRunErrBox').style.display = 'none';
+  document.getElementById('headerOnRunOkBox').style.display = 'none';
+
+  // Si hay JSON pegado en la sección 3, se usa; si no, se toma del formulario ya diligenciado
+  const raw = document.getElementById('headerJsonInput').value.trim();
+  let d = {};
+  if (raw !== '') {
+    try { d = JSON.parse(raw); }
+    catch (e) { showHeaderOnRunError('JSON inválido: ' + e.message); return; }
+  }
+  const val = id => document.getElementById(id).value.trim();
+
+  const mileageRaw = (d.Mileage !== undefined && d.Mileage !== null && d.Mileage !== '') ? d.Mileage : val('h_km');
+  const mileage = (mileageRaw === '' || mileageRaw === undefined) ? 0 : mileageRaw;
+
+  const params = [
+    navStr(d.CustomerNo || val('h_billToCustomer')),
+    navStr(d.ShipToAddressCode || val('h_shipToCode')),
+    navStr(d.ServiceItemNo || val('h_serviceItemNo')),
+    navStr(d.ResourceNo || val('h_resourceNo')),
+    mileage,
+    navStr(d.Observations || val('h_observations')),
+    navStr(d.LicensePlate || val('h_licensePlate')),
+    navDate(d.WorkshopEntryDate || val('h_workshopEntryDate')),
+    navStr(d.ServiceOrderUser || val('h_serviceOrderUser')),
+    navStr(d.ServiceOrderType || val('h_serviceOrderType')),
+    navStr(d.SellToCustomer || val('h_sellToCustomer')),
+    navStr(d.ExternalOrderNo || val('h_externalOrderNo')),
+    navStr(d.ContractNo || val('h_contractNo'))
+  ];
+
+  document.getElementById('headerOnRunOutput').value =
+    'CreateServiceOrderHeader(\n' + params.join(',\n') + '\n);';
+  const ok = document.getElementById('headerOnRunOkBox');
+  ok.textContent = 'OnRun generado.';
+  ok.style.display = 'block';
+});
+
+document.getElementById('copyHeaderOnRunBtn').addEventListener('click', () => {
+  const el = document.getElementById('headerOnRunOutput');
+  el.select();
+  document.execCommand('copy');
+  const ok = document.getElementById('headerOnRunOkBox');
+  ok.textContent = 'Copiado al portapapeles';
+  ok.style.display = 'block';
+  setTimeout(() => ok.style.display = 'none', 1500);
+});
+
+// ---------- Update ----------
+function showUpdateOnRunError(msg) {
+  document.getElementById('updateOnRunOkBox').style.display = 'none';
+  const box = document.getElementById('updateOnRunErrBox');
+  box.textContent = msg;
+  box.style.display = 'block';
+}
+
+document.getElementById('genUpdateOnRunBtn').addEventListener('click', () => {
+  document.getElementById('updateOnRunErrBox').style.display = 'none';
+  document.getElementById('updateOnRunOkBox').style.display = 'none';
+
+  const raw = document.getElementById('updateJsonInput').value.trim();
+  let d = {};
+  if (raw !== '') {
+    try { d = JSON.parse(raw); }
+    catch (e) { showUpdateOnRunError('JSON inválido: ' + e.message); return; }
+  }
+  const val = id => document.getElementById(id).value.trim();
+
+  const mileageRaw = (d.Mileage !== undefined && d.Mileage !== null && d.Mileage !== '') ? d.Mileage : val('u_kilometers');
+  const mileage = (mileageRaw === '' || mileageRaw === undefined) ? 0 : mileageRaw;
+
+  const lines = [
+    navStr(d.ServiceOrderNo || val('u_serviceOrderNo')) + ', // ServiceOrderNo',
+    mileage + ', // Kilometers',
+    navStr(d.ServiceOrderType || val('u_serviceOrderType')) + ', // ServiceOrderType',
+    navStr(d.EntryComment || val('u_ingressComment')) + ', // IngressComment',
+    navStr(d.ExitComment || val('u_egressComment')) + ', // EgressComment',
+    navStr(d.RepairStatusCode || val('u_repairStatusCode')) + ', // RepairStatusCode',
+    navStr(d.ResourceNo || val('u_resourceNo')) + ', // ResourceNo',
+    navStr(d.SellToCustomer || val('u_billToCustomer')) + ', // BillToCustomer',
+    navStr(d.ApproverUserID || val('u_approverUserID')) + ' // ApproverUserID'
+  ];
+
+  document.getElementById('updateOnRunOutput').value =
+    'UpdateServiceOrder(\n' + lines.join('\n') + '\n);';
+  const ok = document.getElementById('updateOnRunOkBox');
+  ok.textContent = 'OnRun generado.';
+  ok.style.display = 'block';
+});
+
+document.getElementById('copyUpdateOnRunBtn').addEventListener('click', () => {
+  const el = document.getElementById('updateOnRunOutput');
+  el.select();
+  document.execCommand('copy');
+  const ok = document.getElementById('updateOnRunOkBox');
+  ok.textContent = 'Copiado al portapapeles';
+  ok.style.display = 'block';
+  setTimeout(() => ok.style.display = 'none', 1500);
+});
+
+// ---------- Líneas ----------
+function showLinesOnRunError(msg) {
+  document.getElementById('linesOnRunOkBox').style.display = 'none';
+  const box = document.getElementById('linesOnRunErrBox');
+  box.textContent = msg;
+  box.style.display = 'block';
+}
+
+document.getElementById('genLinesOnRunBtn').addEventListener('click', () => {
+  document.getElementById('linesOnRunErrBox').style.display = 'none';
+  document.getElementById('linesOnRunOkBox').style.display = 'none';
+
+  // Reutiliza el array "lines" ya existente: se llena manual (addLineBtn) o vía JSON (importJsonBtn)
+  if (lines.length === 0) {
+    showLinesOnRunError('Agrega al menos una línea (manual o desde JSON) antes de generar el OnRun.');
+    return;
+  }
+
+  const docNo = document.getElementById('docNo').value.trim();
+  if (docNo === '') {
+    showLinesOnRunError('El serviceOrderNo es obligatorio.');
+    return;
+  }
+
+  const str = lines.join(',');
+  const primaryFailurePart = document.getElementById('primaryFailurePart').value.trim();
+  const faultAreaCode = document.getElementById('faultAreaCode').value.trim();
+  const symptomCode = document.getElementById('symptomCode').value.trim();
+  const failureCode = document.getElementById('failureCode').value.trim();
+
+  document.getElementById('linesOnRunOutput').value =
+    'CreateServiceOrderLine(' +
+    navStr(docNo) + ',' +
+    navStr(str) + ',' +
+    navStr(primaryFailurePart) + ',' +
+    navStr(faultAreaCode) + ',' +
+    navStr(symptomCode) + ',' +
+    navStr(failureCode) + ');';
+
+  const ok = document.getElementById('linesOnRunOkBox');
+  ok.textContent = lines.length + ' línea(s) incluidas en el OnRun.';
+  ok.style.display = 'block';
+});
+
+document.getElementById('copyLinesOnRunBtn').addEventListener('click', () => {
+  const el = document.getElementById('linesOnRunOutput');
+  el.select();
+  document.execCommand('copy');
+  const ok = document.getElementById('linesOnRunOkBox');
+  ok.textContent = 'Copiado al portapapeles';
+  ok.style.display = 'block';
+  setTimeout(() => ok.style.display = 'none', 1500);
+});

@@ -87,10 +87,18 @@
                     <textarea id="headerOutXml" readonly style="min-height:420px;"></textarea>
                     <button class="btn secondary" id="copyHeaderXmlBtn">Copiar XML</button>
                     <div class="ok-box" id="headerOkBox">Copiado al portapapeles</div>
+
+                    <label style="margin-top:18px;">OnRun (debug NAV)</label>
+                    <textarea id="headerOnRunOutput" readonly style="min-height:140px;"></textarea>
+                    <div class="copybar">
+                        <button class="btn secondary" id="genHeaderOnRunBtn">Generar OnRun</button>
+                        <button class="btn secondary" id="copyHeaderOnRunBtn">Copiar OnRun</button>
+                    </div>
+                    <div class="error-box" id="headerOnRunErrBox"></div>
+                    <div class="ok-box" id="headerOnRunOkBox">Copiado al portapapeles</div>
                 </div>
             </div>
         </section>
-
         <!-- ============ TAB 2: ACTUALIZAR PEDIDO (UpdateServiceOrder) ============ -->
         <section class="main-tab-panel" id="panel-update">
             <div class="grid">
@@ -144,10 +152,18 @@
                     <textarea id="updateOutXml" readonly style="min-height:420px;"></textarea>
                     <button class="btn secondary" id="copyUpdateXmlBtn">Copiar XML</button>
                     <div class="ok-box" id="updateOkBox">Copiado al portapapeles</div>
+
+                    <label style="margin-top:18px;">OnRun (debug NAV)</label>
+                    <textarea id="updateOnRunOutput" readonly style="min-height:140px;"></textarea>
+                    <div class="copybar">
+                        <button class="btn secondary" id="genUpdateOnRunBtn">Generar OnRun</button>
+                        <button class="btn secondary" id="copyUpdateOnRunBtn">Copiar OnRun</button>
+                    </div>
+                    <div class="error-box" id="updateOnRunErrBox"></div>
+                    <div class="ok-box" id="updateOnRunOkBox">Copiado al portapapeles</div>
                 </div>
             </div>
         </section>
-
         <!-- ============ TAB 3: AGREGAR LINEAS (CreateServiceOrderLine) ============ -->
         <section class="main-tab-panel" id="panel-lines">
             <div class="grid">
@@ -268,11 +284,19 @@
                         <button class="btn secondary" id="copyXmlBtn">Copiar XML</button>
                     </div>
                     <div class="ok-box" id="okBox">Copiado al portapapeles</div>
+
+                    <label style="margin-top:18px;">OnRun (debug NAV)</label>
+                    <textarea id="linesOnRunOutput" readonly style="min-height:140px;"></textarea>
+                    <div class="copybar">
+                        <button class="btn secondary" id="genLinesOnRunBtn">Generar OnRun</button>
+                        <button class="btn secondary" id="copyLinesOnRunBtn">Copiar OnRun</button>
+                    </div>
+                    <div class="error-box" id="linesOnRunErrBox"></div>
+                    <div class="ok-box" id="linesOnRunOkBox">Copiado al portapapeles</div>
                 </div>
 
             </div>
         </section>
-
         <footer>Reglas basadas en SetServiceLines (Codeunit Csa218Integration) · Posiciones numéricas nunca quedan
             vacías para evitar NavNCLEvaluateException</footer>
     </div>
