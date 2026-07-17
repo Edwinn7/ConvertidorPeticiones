@@ -1,6 +1,6 @@
 let currentType = 'Producto';
 let lines = [];
- 
+
 const typeTabs = document.getElementById('typeTabs');
 typeTabs.querySelectorAll('.type-tab').forEach(tab => {
   tab.addEventListener('click', () => {
@@ -16,7 +16,7 @@ typeTabs.querySelectorAll('.type-tab').forEach(tab => {
 });
 document.getElementById('commonFields').style.display = 'block';
 document.getElementById('grp-Producto').classList.add('active');
- 
+
 function showError(msg) {
   const box = document.getElementById('errBox');
   box.textContent = msg;
@@ -25,11 +25,11 @@ function showError(msg) {
 function hideError() {
   document.getElementById('errBox').style.display = 'none';
 }
- 
+
 function buildLine() {
   hideError();
   const itemNo = document.getElementById('itemNo').value.trim();
- 
+
   if (currentType === 'Observacion') {
     const obs = document.getElementById('obsText').value.trim();
     if (obs === '') { showError('La observación no puede estar vacía.'); return null; }
@@ -37,42 +37,42 @@ function buildLine() {
     // Observacion:Texto (resto de posiciones no aplica)
     return 'Observacion:' + obs;
   }
- 
+
   const qty = document.getElementById('qty').value;
   const maintNo = document.getElementById('maintNo').value;
   const serviceType = document.getElementById('serviceType').value.trim();
- 
+
   if (itemNo === '') { showError('El código (ItemNo) es obligatorio.'); return null; }
   if (qty === '') { showError('La cantidad es obligatoria.'); return null; }
   if (Number(qty) < 0) { showError('La cantidad no puede ser negativa.'); return null; }
   if (maintNo === '') { showError('El Nº de mantenimiento es obligatorio.'); return null; }
   if (serviceType === '') { showError('El tipo de servicio es obligatorio.'); return null; }
- 
+
   // Posiciones 5..10 con default seguro (nunca vacías las numéricas)
   let tempario = '', workType = '', costAmt = '0', costDesc = '', discountPct = '0', samplePart = '0';
- 
+
   if (currentType === 'Producto') {
     samplePart = document.getElementById('samplePart').value;
     tempario = document.getElementById('tempario') ? '' : ''; // no aplica
   }
- 
+
   if (currentType === 'Recurso') {
     tempario = document.getElementById('tempario').value.trim();
     workType = document.getElementById('workType').value.trim();
     discountPct = document.getElementById('discountPct').value.trim() || '0';
     const resourceDesc = document.getElementById('resourceDesc').value.trim();
- 
+
     if (tempario === '') { showError('Tempario es obligatorio para recursos.'); return null; }
     if (workType === '') { showError('Tipo de trabajo es obligatorio para recursos.'); return null; }
     if (Number(discountPct) < 0 || Number(discountPct) > 100) { showError('% de descuento fuera de rango (0-100).'); return null; }
- 
+
     const isCodServStandard = ['MANO_DE_OBRA', 'MANO_DE_OBRA1', 'MANO_DE_OBRA2', 'MANO_DE_OBRA3', 'MANO_DE_OBRA4'].includes(itemNo);
     if (serviceType === 'MTTO_PREP' && isCodServStandard && resourceDesc === '') {
       showError('La descripción es obligatoria para ' + itemNo + ' en pedidos MTTO_PREP.'); return null;
     }
     if (resourceDesc.length > 50) { showError('La descripción del recurso supera 50 caracteres.'); return null; }
   }
- 
+
   if (currentType === 'Coste') {
     costAmt = document.getElementById('costAmt').value.trim();
     costDesc = document.getElementById('costDesc').value.trim();
@@ -82,7 +82,7 @@ function buildLine() {
       showError('Solo los códigos C3 o S3 pueden tener descripción.'); return null;
     }
   }
- 
+
   // Estructura posicional 0..11 según SetServiceLines
   // 0 LineType | 1 ItemNo | 2 Qty | 3 MaintNo | 4 ServiceType | 5 Tempario |
   // 6 WorkType | 7 CostAmt | 8 CostDescription | 9 DiscountPct | 10 SamplePart | 11 ResourceDescription
@@ -90,7 +90,7 @@ function buildLine() {
   if (currentType === 'Recurso') {
     resourceDescField = document.getElementById('resourceDesc').value.trim();
   }
- 
+
   const parts = [
     currentType,
     itemNo,
@@ -107,7 +107,7 @@ function buildLine() {
   ];
   return parts.join(':');
 }
- 
+
 document.getElementById('addLineBtn').addEventListener('click', () => {
   const line = buildLine();
   if (line === null) return;
@@ -115,7 +115,7 @@ document.getElementById('addLineBtn').addEventListener('click', () => {
   renderLines();
   regenerateOutput();
 });
- 
+
 function renderLines() {
   const container = document.getElementById('linesList');
   container.innerHTML = '';
@@ -138,17 +138,17 @@ function renderLines() {
     container.appendChild(div);
   });
 }
- 
+
 function regenerateOutput() {
   const str = lines.join(',');
   document.getElementById('outString').value = str;
- 
+
   const docNo = document.getElementById('docNo').value.trim() || 'PSER_XXXXXXX';
   const primaryFailurePart = esc(document.getElementById('primaryFailurePart').value.trim());
   const faultAreaCode = esc(document.getElementById('faultAreaCode').value.trim());
   const symptomCode = esc(document.getElementById('symptomCode').value.trim());
   const failureCode = esc(document.getElementById('failureCode').value.trim());
- 
+
   // Validación no bloqueante: si alguna línea es GARANTIA, estos 4 campos son obligatorios
   // (según SetServiceLines: FaultAreaCodeRec.GET / SymptomCodeRec.GET / FailureCodeRec.GET)
   const warnBox = document.getElementById('warrantyErrBox');
@@ -159,7 +159,7 @@ function regenerateOutput() {
   } else {
     warnBox.style.display = 'none';
   }
- 
+
   const xml = `<Envelope
 \txmlns="http://schemas.xmlsoap.org/soap/envelope/">
 \t<Body>
@@ -176,14 +176,14 @@ function regenerateOutput() {
 </Envelope>`;
   document.getElementById('outXml').value = xml;
 }
- 
+
 document.getElementById('primaryFailurePart').addEventListener('input', regenerateOutput);
 document.getElementById('faultAreaCode').addEventListener('input', regenerateOutput);
 document.getElementById('symptomCode').addEventListener('input', regenerateOutput);
 document.getElementById('failureCode').addEventListener('input', regenerateOutput);
- 
+
 document.getElementById('docNo').addEventListener('input', regenerateOutput);
- 
+
 function copyToClipboard(elId) {
   const el = document.getElementById(elId);
   el.select();
@@ -194,7 +194,7 @@ function copyToClipboard(elId) {
 }
 document.getElementById('copyStringBtn').addEventListener('click', () => copyToClipboard('outString'));
 document.getElementById('copyXmlBtn').addEventListener('click', () => copyToClipboard('outXml'));
- 
+
 // ---- Importación desde JSON ----
 function showJsonError(msg) {
   const box = document.getElementById('jsonErrBox');
@@ -208,7 +208,7 @@ function showJsonOk(msg) {
   box.style.display = 'block';
   document.getElementById('jsonErrBox').style.display = 'none';
 }
- 
+
 // Construye una línea posicional a partir de un item de JSON, aplicando
 // las mismas reglas de SetServiceLines (numéricos nunca vacíos, obligatorios por tipo).
 function buildLineFromJsonItem(item, idx) {
@@ -217,25 +217,25 @@ function buildLineFromJsonItem(item, idx) {
   if (!validTypes.includes(type)) {
     throw new Error('Línea ' + (idx + 1) + ': Type inválido ("' + type + '"). Debe ser Producto, Recurso, Coste u Observacion.');
   }
- 
+
   if (type === 'Observacion') {
     const obs = (item.ItemNo || item.Observation || item.Text || '').toString().trim();
     if (obs === '') { throw new Error('Línea ' + (idx + 1) + ': la observación no puede estar vacía.'); }
     if (obs.length > 50) { throw new Error('Línea ' + (idx + 1) + ': observación supera 50 caracteres.'); }
     return 'Observacion:' + obs;
   }
- 
+
   const itemNo = (item.ItemNo || '').toString().trim();
   const qty = (item.Quantity !== undefined && item.Quantity !== null) ? item.Quantity.toString().trim() : '';
   const maintNo = (item.MaintenanceNumber !== undefined && item.MaintenanceNumber !== null) ? item.MaintenanceNumber.toString().trim() : '';
   const serviceType = (item.ServiceType || '').toString().trim();
- 
+
   if (itemNo === '') { throw new Error('Línea ' + (idx + 1) + ': ItemNo es obligatorio.'); }
   if (qty === '') { throw new Error('Línea ' + (idx + 1) + ': Quantity es obligatorio.'); }
   if (Number(qty) < 0) { throw new Error('Línea ' + (idx + 1) + ': la cantidad no puede ser negativa.'); }
   if (maintNo === '') { throw new Error('Línea ' + (idx + 1) + ': MaintenanceNumber es obligatorio.'); }
   if (serviceType === '') { throw new Error('Línea ' + (idx + 1) + ': ServiceType es obligatorio.'); }
- 
+
   // Defaults seguros: numéricos nunca vacíos (evita NavNCLEvaluateException)
   let tempario = (item.Tempario || '').toString().trim();
   let workType = (item.WorkType || '').toString().trim();
@@ -244,7 +244,7 @@ function buildLineFromJsonItem(item, idx) {
   let discountPct = (item.DiscountPct !== undefined && item.DiscountPct !== null && item.DiscountPct !== '') ? item.DiscountPct.toString().trim() : '0';
   let samplePart = (item.SamplePart !== undefined && item.SamplePart !== null && item.SamplePart !== '') ? item.SamplePart.toString().trim() : '0';
   let resourceDesc = (item.ResourceDescription || '').toString().trim();
- 
+
   if (type === 'Recurso') {
     if (tempario === '') { throw new Error('Línea ' + (idx + 1) + ' (' + itemNo + '): Tempario es obligatorio para recursos.'); }
     if (workType === '') { throw new Error('Línea ' + (idx + 1) + ' (' + itemNo + '): WorkType es obligatorio para recursos.'); }
@@ -255,7 +255,7 @@ function buildLineFromJsonItem(item, idx) {
     }
     if (resourceDesc.length > 50) { throw new Error('Línea ' + (idx + 1) + ' (' + itemNo + '): descripción de recurso supera 50 caracteres.'); }
   }
- 
+
   if (type === 'Coste') {
     if (costAmt === '') { throw new Error('Línea ' + (idx + 1) + ' (' + itemNo + '): CostAmount es obligatorio.'); }
     if (costDesc.length > 50) { throw new Error('Línea ' + (idx + 1) + ' (' + itemNo + '): CostDescription supera 50 caracteres.'); }
@@ -263,15 +263,15 @@ function buildLineFromJsonItem(item, idx) {
       throw new Error('Línea ' + (idx + 1) + ' (' + itemNo + '): solo C3 o S3 pueden llevar descripción.');
     }
   }
- 
+
   const parts = [type, itemNo, qty, maintNo, serviceType, tempario, workType, costAmt, costDesc, discountPct, samplePart, resourceDesc];
   return parts.join(':');
 }
- 
+
 document.getElementById('importJsonBtn').addEventListener('click', () => {
   const raw = document.getElementById('jsonInput').value.trim();
   if (raw === '') { showJsonError('Pega un JSON primero.'); return; }
- 
+
   let data;
   try {
     data = JSON.parse(raw);
@@ -279,13 +279,13 @@ document.getElementById('importJsonBtn').addEventListener('click', () => {
     showJsonError('JSON inválido: ' + e.message);
     return;
   }
- 
+
   const items = data.Items || data.items;
   if (!Array.isArray(items) || items.length === 0) {
     showJsonError('El JSON debe tener un arreglo "Items" con al menos una línea.');
     return;
   }
- 
+
   const newLines = [];
   try {
     items.forEach((item, idx) => {
@@ -295,16 +295,16 @@ document.getElementById('importJsonBtn').addEventListener('click', () => {
     showJsonError(e.message);
     return;
   }
- 
+
   // Todo válido: reemplaza las líneas actuales por las del JSON
   lines = newLines;
   renderLines();
- 
+
   const docNo = data.ServiceOrderNo || data.serviceOrderNo || '';
   if (docNo) {
     document.getElementById('docNo').value = docNo;
   }
- 
+
   // Campos de garantía a nivel de pedido (no van dentro de Items[])
   if (data.PrimaryFailurePart !== undefined && data.PrimaryFailurePart !== null) {
     document.getElementById('primaryFailurePart').value = data.PrimaryFailurePart;
@@ -318,13 +318,13 @@ document.getElementById('importJsonBtn').addEventListener('click', () => {
   if (data.FailureCode !== undefined && data.FailureCode !== null) {
     document.getElementById('failureCode').value = data.FailureCode;
   }
- 
+
   regenerateOutput();
   showJsonOk(newLines.length + ' línea(s) importada(s) correctamente desde el JSON.');
 });
- 
+
 regenerateOutput();
- 
+
 // =========================================================
 // PESTAÑAS PRINCIPALES
 // =========================================================
@@ -337,7 +337,7 @@ mainTabs.querySelectorAll('.main-tab').forEach(tab => {
     document.getElementById('panel-' + tab.dataset.maintab).classList.add('active');
   });
 });
- 
+
 // =========================================================
 // TAB 1: CREAR PEDIDO (CreateServiceOrderHeader)
 // =========================================================
@@ -346,7 +346,7 @@ function esc(v) {
   return (v === undefined || v === null) ? '' : String(v)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
- 
+
 function buildHeaderXml() {
   const v = id => esc(document.getElementById(id).value.trim());
   const xml = `<Envelope
@@ -373,19 +373,19 @@ function buildHeaderXml() {
   document.getElementById('headerOutXml').value = xml;
 }
 document.getElementById('genHeaderBtn').addEventListener('click', buildHeaderXml);
- 
+
 document.getElementById('importHeaderJsonBtn').addEventListener('click', () => {
   const errBox = document.getElementById('headerJsonErrBox');
   const okBox = document.getElementById('headerJsonOkBox');
   errBox.style.display = 'none'; okBox.style.display = 'none';
- 
+
   const raw = document.getElementById('headerJsonInput').value.trim();
   if (raw === '') { errBox.textContent = 'Pega un JSON primero.'; errBox.style.display = 'block'; return; }
- 
+
   let data;
   try { data = JSON.parse(raw); }
   catch (e) { errBox.textContent = 'JSON inválido: ' + e.message; errBox.style.display = 'block'; return; }
- 
+
   // Mapeo JSON de creación -> campos del formulario
   const map = {
     h_km: data.Mileage,
@@ -407,12 +407,12 @@ document.getElementById('importHeaderJsonBtn').addEventListener('click', () => {
       document.getElementById(id).value = map[id];
     }
   });
- 
+
   buildHeaderXml();
   okBox.textContent = 'Formulario y XML actualizados desde el JSON.';
   okBox.style.display = 'block';
 });
- 
+
 function copyHeaderXml() {
   const el = document.getElementById('headerOutXml');
   el.select();
@@ -422,7 +422,7 @@ function copyHeaderXml() {
   setTimeout(() => ok.style.display = 'none', 1500);
 }
 document.getElementById('copyHeaderXmlBtn').addEventListener('click', copyHeaderXml);
- 
+
 // =========================================================
 // TAB 2: ACTUALIZAR PEDIDO (UpdateServiceOrder)
 // =========================================================
@@ -448,19 +448,19 @@ function buildUpdateXml() {
   document.getElementById('updateOutXml').value = xml;
 }
 document.getElementById('genUpdateBtn').addEventListener('click', buildUpdateXml);
- 
+
 document.getElementById('importUpdateJsonBtn').addEventListener('click', () => {
   const errBox = document.getElementById('updateJsonErrBox');
   const okBox = document.getElementById('updateJsonOkBox');
   errBox.style.display = 'none'; okBox.style.display = 'none';
- 
+
   const raw = document.getElementById('updateJsonInput').value.trim();
   if (raw === '') { errBox.textContent = 'Pega un JSON primero.'; errBox.style.display = 'block'; return; }
- 
+
   let data;
   try { data = JSON.parse(raw); }
   catch (e) { errBox.textContent = 'JSON inválido: ' + e.message; errBox.style.display = 'block'; return; }
- 
+
   // Mapeo JSON de actualización -> campos del formulario
   const map = {
     u_kilometers: data.Mileage,
@@ -478,12 +478,12 @@ document.getElementById('importUpdateJsonBtn').addEventListener('click', () => {
       document.getElementById(id).value = map[id];
     }
   });
- 
+
   buildUpdateXml();
   okBox.textContent = 'Formulario y XML actualizados desde el JSON.';
   okBox.style.display = 'block';
 });
- 
+
 function copyUpdateXml() {
   const el = document.getElementById('updateOutXml');
   el.select();
@@ -493,4 +493,3 @@ function copyUpdateXml() {
   setTimeout(() => ok.style.display = 'none', 1500);
 }
 document.getElementById('copyUpdateXmlBtn').addEventListener('click', copyUpdateXml);
- 
